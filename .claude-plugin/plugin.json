@@ -1,0 +1,8 @@
+{
+	"name": "didactic",
+	"version": "0.1.0",
+	"description": "Skills that keep AI-accelerated development and real understanding in balance.",
+	"author": { "name": "Aaron Clement", "url": "https://github.com/aaron-khroma" },
+	"repository": "https://github.com/aaron-khroma/didactic",
+	"license": "MIT"
+}

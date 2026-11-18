@@ -1,0 +1,6 @@
+{
+	"name": "didactic",
+	"description": "Skills that keep AI-accelerated development and real understanding in balance.",
+	"owner": { "name": "Aaron Clement", "url": "https://github.com/aaron-khroma" },
+	"plugins": [{ "name": "didactic", "source": "./" }]
+}

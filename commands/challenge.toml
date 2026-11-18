@@ -1,0 +1,6 @@
+description = "Do a task, then turn pieces of the finished code into challenges that teach the concepts you pick."
+prompt = """
+Use the challenge skill for this task, following its steps exactly:
+
+{{args}}
+"""

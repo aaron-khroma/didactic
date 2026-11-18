@@ -1,0 +1,10 @@
+{
+	"name": "didactic",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Skills that keep AI-accelerated development and real understanding in balance.",
+	"license": "MIT",
+	"type": "module",
+	"engines": { "node": ">=20" },
+	"scripts": { "test": "node --test" }
+}
