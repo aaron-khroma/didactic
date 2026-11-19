@@ -4,14 +4,14 @@
  * restyle or remove the blocks. No dependencies; needs Node 20 or newer.
  *
  *   node blocks.mjs censor <file> --lines 38-73 --id C --title "Installing during render"
- *                          --tests 'npx vitest run -t "GDevice"' [--blur low|medium|high]
+ *                          --tests 'npx vitest run -t "GDevice"' [--blur low|medium|high|bars]
  *                          [--save <solution file>] [--placeholder <code>]
  *   node blocks.mjs restyle <file> [--id C] [--blur [C=]low] [--solution C=<solution file>]
  *   node blocks.mjs list <file>...
  *   node blocks.mjs clean <file>
  *
  * Shared options: --width <columns|auto> and --tab-width <columns|auto>. Defaults come from
- * ~/.didactic/config.json ({ "width": 50, "blur": "high", "tabWidth": "auto" }), or the folder
+ * ~/.didactic/config.json ({ "width": 50, "blur": "low", "tabWidth": "auto" }), or the folder
  * named by DIDACTIC_HOME.
  */
 import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
@@ -22,26 +22,66 @@ import { parseArgs } from 'node:util';
 
 // ─── Shading ────────────────────────────────────────────────────────────────────────────────────
 
-export const BLURS = ['low', 'medium', 'high'];
+export const BLURS = ['low', 'medium', 'high', 'bars'];
 const BRACKETS = new Set('()[]{}');
 const WORD = /[\p{L}\p{N}_$]/u;
 
 /**
- * Shade code by blur level, one block per character.
- * - low: spaces stay; letters, digits, `_`, `$` are ▒; brackets are ▓; everything else is ░.
- * - medium: spaces are ░; everything else is ▒.
- * - high: everything is ▒.
+ * Shade code by blur level, one block per character. `angles` holds the character indexes of `<`
+ * and `>` that are paired brackets (see angleBrackets); any other `<` or `>` is an operator.
+ * - low: spaces stay; brackets are ▓; letters, digits, `_`, `$` are ▒; everything else is ░.
+ * - medium: spaces stay; brackets are ▓; everything else is ▒.
+ * - high: spaces stay; everything else is ▒.
+ * - bars: everything is ▒.
  */
-export function shade(code, blur) {
+export function shade(code, blur, angles = new Set()) {
 	if (!BLURS.includes(blur)) throw new Error(`Unknown blur "${blur}": use ${BLURS.join(', ')}.`);
-	let out = '';
-	for (const ch of code) {
-		if (blur === 'high') out += '▒';
-		else if (/\s/.test(ch)) out += blur === 'medium' ? '░' : ' ';
-		else if (blur === 'medium' || WORD.test(ch)) out += '▒';
-		else out += BRACKETS.has(ch) ? '▓' : '░';
-	}
-	return out;
+	return [...code]
+		.map((ch, i) => {
+			if (blur === 'bars') return '▒';
+			if (/\s/.test(ch)) return ' ';
+			if (blur === 'high') return '▒';
+			if (BRACKETS.has(ch) || angles.has(i)) return '▓';
+			return blur === 'medium' || WORD.test(ch) ? '▒' : '░';
+		})
+		.join('');
+}
+
+/** Languages where `<` and `>` also pair up, as generics, tags, or includes. */
+const ANGLED = new Set(
+	'ts tsx mts cts js jsx mjs cjs java kt kts swift rs cs c h cc cpp hpp dart html htm xml svg vue svelte'.split(' '),
+);
+
+/**
+ * Find the `<` and `>` that pair up as brackets in some lines of code (without indentation), for
+ * one per-line set of character indexes. Formatted code spaces its comparisons and shifts
+ * (`x < y`, `a >> 2`), so an opening `<` touches the next character (`Array<T>`, `<div`, `</`,
+ * `<>`) and a closing `>` touches the one before it or starts the line. Pairs can span lines, as
+ * multi-line tags do; a candidate that never pairs stays an operator.
+ */
+export function angleBrackets(lines) {
+	const found = lines.map(() => new Set());
+	const open = [];
+	lines.forEach((line, row) => {
+		const chars = [...line];
+		chars.forEach((ch, i) => {
+			const prev = chars[i - 1];
+			const next = chars[i + 1];
+			if (ch === '<') {
+				if (next !== undefined && !/[\s=<-]/.test(next) && prev !== '<') open.push([row, i]);
+			} else if (ch === '>' && open.length > 0) {
+				// Not `=>`, `->`, `>=`, or the second half of a `>>` shift.
+				const closes =
+					prev === undefined || (!/[\s=-]/.test(prev) && (prev !== '>' || found[row].has(i - 1)));
+				if (closes && next !== '=') {
+					const [r, j] = open.pop();
+					found[r].add(j);
+					found[row].add(i);
+				}
+			}
+		});
+	});
+	return found;
 }
 
 // ─── Comment syntax ─────────────────────────────────────────────────────────────────────────────
@@ -76,6 +116,12 @@ function lineComment(syntax) {
 // ─── Columns ────────────────────────────────────────────────────────────────────────────────────
 
 const leading = (line) => /^[\t ]*/.exec(line)[0];
+const codeOf = (line) => line.slice(leading(line).length).trimEnd();
+
+/** For each line, the indexes of its `<` and `>` that are brackets, in languages that pair them. */
+function angleSets(lines, { angles }) {
+	return angles ? angleBrackets(lines.map(codeOf)) : lines.map(() => new Set());
+}
 
 /** The column whitespace reaches, with tabs stopping at multiples of the tab width. */
 export function columns(whitespace, tabWidth) {
@@ -102,10 +148,9 @@ function placeShade(content, col, useTabs, { syntax, tabWidth }) {
 }
 
 /** Censor one line of code in place. */
-export function censorLine(line, { syntax, blur, tabWidth }) {
+export function censorLine(line, { syntax, blur, tabWidth }, angles) {
 	const indent = leading(line);
-	const code = line.slice(indent.length).trimEnd();
-	return placeShade(shade(code, blur), columns(indent, tabWidth), indent.includes('\t'), {
+	return placeShade(shade(codeOf(line), blur, angles), columns(indent, tabWidth), indent.includes('\t'), {
 		syntax,
 		tabWidth,
 	});
@@ -294,6 +339,7 @@ function markerWidth(indent, { width, lineLength, tabWidth }) {
 function restyleContent(content, settings, source, blur) {
 	const kinds = source && classify(source, settings.syntax);
 	const code = source ? source.filter((_, i) => kinds[i] === 'code') : null;
+	const angles = code && blur ? angleSets(code, settings) : null;
 	let cursor = 0;
 	const missed = [];
 	const out = content.map((line, i) => {
@@ -308,7 +354,7 @@ function restyleContent(content, settings, source, blur) {
 		}
 		cursor = found + 1;
 		const original = code[found];
-		const shaded = blur ? censorLine(original, { ...settings, blur }) : null;
+		const shaded = blur ? censorLine(original, { ...settings, blur }, angles[found]) : null;
 		const indent = leading(original);
 		return (
 			shaded ?? placeShade(censored.content, columns(indent, settings.tabWidth), indent.includes('\t'), settings)
@@ -319,7 +365,7 @@ function restyleContent(content, settings, source, blur) {
 
 // ─── Settings ───────────────────────────────────────────────────────────────────────────────────
 
-const DEFAULTS = { width: 50, blur: 'high', tabWidth: 'auto' };
+const DEFAULTS = { width: 50, blur: 'low', tabWidth: 'auto' };
 
 export function didacticHome() {
 	return process.env.DIDACTIC_HOME ?? join(homedir(), '.didactic');
@@ -489,6 +535,7 @@ function settingsFor(file, options) {
 	const tabWidth = number(pick('tabWidth'));
 	return {
 		syntax: syntaxFor(file),
+		angles: ANGLED.has(extname(file).slice(1).toLowerCase()),
 		width,
 		lineLength: width === 'auto' ? detectLineLength(file) : null,
 		tabWidth: tabWidth === 'auto' ? detectTabWidth(file) : tabWidth,
@@ -512,8 +559,9 @@ function located(file, lines) {
 function blurOf(block) {
 	const shaded = block.content.map((line) => /[░▒▓][░▒▓ ]*$/.exec(line)?.[0] ?? '').join('');
 	if (!shaded) return 'none censored';
-	if (/[ ▓]/.test(shaded)) return 'low';
-	return shaded.includes('░') ? 'medium' : 'high';
+	if (shaded.includes('░')) return 'low';
+	if (shaded.includes('▓')) return 'medium';
+	return shaded.includes(' ') ? 'high' : 'bars';
 }
 
 /** Censor lines `from`-`to` (1-based, inclusive) of a file into a new block. */
@@ -530,7 +578,11 @@ export function censor(file, { lines: range, id, title, tests, save, placeholder
 
 	const kinds = classify(piece, settings.syntax);
 	const indent = leading(piece.find((line) => line.trim() !== '') ?? '');
-	const content = piece.map((line, i) => (kinds[i] === 'code' ? censorLine(line, settings) : line));
+	const codeRows = piece.flatMap((_, i) => (kinds[i] === 'code' ? [i] : []));
+	const angles = angleSets(codeRows.map((i) => piece[i]), settings);
+	const content = piece.map((line, i) =>
+		kinds[i] === 'code' ? censorLine(line, settings, angles[codeRows.indexOf(i)]) : line,
+	);
 	if (content[0]?.trim() !== '') content.unshift('');
 	if (content.at(-1)?.trim() !== '') content.push('');
 	if (placeholder) {

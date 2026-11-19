@@ -1,6 +1,6 @@
 # didactic
 
-Skills for coding agents that keep AI-accelerated development and real understanding in balance. The agent still does the work, fast and fully tested. Then it hands the parts worth learning back to you as challenges to write yourself, with documentation that teaches them from scratch.
+Skills for coding agents that keep AI-accelerated development and real understanding in balance. The agent still does the work, fast and fully tested, while the dev is given involvement that ensures their understanding of the code being written.
 
 ## Skills
 
@@ -37,9 +37,12 @@ The shading's **blur** sets the difficulty. The line above is `var handle = setT
 
 | Blur   | Shows                                                               | Example                                  |
 | ------ | ------------------------------------------------------------------- | ---------------------------------------- |
-| low    | spaces; `▓` brackets; `░` operators and punctuation; `▒` the rest | `▒▒▒ ▒▒▒▒▒▒ ░ ▒▒▒▒▒▒▒▒▒▒▓▒▒▒▒▒▒▒▒░ ▒▒▒▓` |
-| medium | `░` spaces; `▒` the rest                                            | `▒▒▒░▒▒▒▒▒▒░▒░▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒░▒▒▒▒` |
-| high   | `▒` everything                                                      | `▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒` |
+| low    | spaces; `▓` brackets; `░` non-alphanumeric; `▒` the rest            | `▒▒▒ ▒▒▒▒▒▒ ░ ▒▒▒▒▒▒▒▒▒▒▓▒▒▒▒▒▒▒▒░ ▒▒▒▓` |
+| medium | spaces; `▓` brackets; `▒` the rest                                  | `▒▒▒ ▒▒▒▒▒▒ ▒ ▒▒▒▒▒▒▒▒▒▒▓▒▒▒▒▒▒▒▒▒ ▒▒▒▓` |
+| high   | spaces; `▒` everything                                              | `▒▒▒ ▒▒▒▒▒▒ ▒ ▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒ ▒▒▒▒` |
+| bars   | `▒` everything                                                      | `▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒` |
+
+"Brackets" are paired container symbols: `()`, `[]`, `{}`, and, in languages with generics or tags (TypeScript, JSX, Java, Rust, C++, HTML, …), `<>`. A `<` or `>` counts as a bracket only when it touches its contents (`Array<T>`, `<div>`) and pairs up; comparisons like `x < y` stay `░`.
 
 Each block's `TESTS:` line is the check that goes from red to green when your code is right. A brief in the repo's notes folder teaches each concept: the problem it solves, how it works phase by phase, a trace through the real code, the official docs, and hints from gentle to strong. When you're done, the agent reviews your code like a senior colleague, logs what you practiced, and cleans the blocks out before committing. Commits read as ordinary project work.
 

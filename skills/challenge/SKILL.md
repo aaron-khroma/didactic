@@ -31,7 +31,7 @@ Do the whole task to full functionality. Run every check the repo has (typecheck
 
 Done when: everything passes and you have seen the change working. Challenges are made from code that is already **green**, never from a guess.
 
-## 2. Offer topics, then pause
+## 2. Offer topics, maybe blurs, then pause
 
 Report the task's outcome briefly. Then list the **topics** the work involves, and wait for the user's choice before censoring anything.
 
@@ -51,7 +51,9 @@ For each topic, give:
 
 With four topics or fewer, ask with a multiple-choice question tool if you have one (multi-select). Otherwise, give a numbered list and end your turn.
 
-Done when: the user has picked their topics. Topics the user says they already know go into `LOG.md` right away, with the outcome "already known, no challenge", so later lists mark them as practiced.
+If `config.json` doesn't exist yet, this is the user's first run: along with the topics, explain the blur levels, showing one line of this task's code at each (`low` keeps spaces, `▓` brackets and `░` punctuation; `medium` drops the punctuation; `high` keeps only spaces; `bars` hides everything), and ask which to use by default. Write their choice to `config.json` as `{ "blur": "<level>" }`; if they don't pick one, write `low`. Later runs skip this, and the user can still ask for a different blur on any challenge.
+
+Done when: the user has picked their topics (and, on a first run, a default blur). Topics the user says they already know go into `LOG.md` right away, with the outcome "already known, no challenge", so later lists mark them as practiced.
 
 ## 3. Choose the pieces
 
@@ -78,11 +80,11 @@ Censor each piece with the block tool. It saves the piece as the reference solut
 node blocks.mjs censor <file> --lines 38-73 --id C --title "Installing during render" \
   --tests 'npx vitest run -t "GDevice"' \
   --save ~/.didactic/challenges/<repo>/<YYYY-MM-DD>-<slug>/solution.<ext> \
-  [--blur low|medium|high] [--placeholder '<code>']
+  [--blur low|medium|high|bars] [--placeholder '<code>']
 ```
 
 - **`--tests`**: the check command that turns this block green.
-- **`--blur`**: how much the shading gives away. `high` shades every character `▒`; `medium` shows spaces as `░`; `low` keeps spaces, and shows brackets as `▓` and operators and punctuation as `░`. Use `config.json`'s default unless the user asks for an easier or harder challenge.
+- **`--blur`**: how much the shading gives away. `bars` shades every character `▒`; `high` keeps spaces; `medium` also shows brackets as `▓`; `low` also shows operators and punctuation as `░`. Brackets are `()`, `[]`, `{}`, and, in languages with generics or tags, `<>` pairs; comparisons and shifts stay operators. Use `config.json`'s default unless the user asks for an easier or harder challenge.
 - **`--placeholder`**: the smallest code that keeps the file compiling and the check red (a stub `const` of the right type, a `throw`). The tool puts it at the bottom of the block under a comment saying to delete it once the code above is written. Leave it out when the code around the block already compiles.
 - **Title**: the tool rejects one too long for the block's width; shorten it.
 
@@ -90,7 +92,7 @@ Comments and blank lines stay exactly as written, so the user sees the piece's w
 
 To change a block after the user has started it (a new width, a new blur, a format change), use `blocks.mjs restyle <file> [--id C] [--blur C=low --solution C=<solution file>]`. It redraws the markers and re-places or re-shades only the censored lines; the user's own code stays as they left it. If a formatter has run over a block, pass its `--solution` so each censored line gets its column back.
 
-Settings: `--width <columns|auto>` (default 50) and `--tab-width <columns|auto>` (default `auto`, read from `.editorconfig` and the editor's settings), with defaults from `config.json`, such as `{ "width": 50, "blur": "high", "tabWidth": "auto" }`. Width `auto` ends the markers at the project's line length.
+Settings: `--width <columns|auto>` (default 50) and `--tab-width <columns|auto>` (default `auto`, read from `.editorconfig` and the editor's settings), with defaults from `config.json`, such as `{ "width": 50, "blur": "low", "tabWidth": "auto" }`. Width `auto` ends the markers at the project's line length.
 
 Then create `brief.md` next to each saved solution: that challenge's brief from step 6, plus the file path, the line range, the blur, and the check command. References live outside the repo, so they never get committed. If a file you're censoring is already committed, tell the user that `git diff` would reveal the answer.
 
