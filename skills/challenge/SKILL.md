@@ -15,6 +15,7 @@ Treat the user as **new to every topic they pick**. Each brief teaches the conce
 
 - **The archive**, `~/.didactic/` (or the folder named by `DIDACTIC_HOME`): reference solutions under `challenges/`, the practice log `LOG.md`, and `config.json` for the block settings.
 - **The notes folder** in the repo: the folder your instructions name for a repo's local notes, otherwise `.didactic/` at the repo root. It must stay out of git: if `git check-ignore -q <folder>` fails, add the folder to `.git/info/exclude`, which is local and never committed.
+- **The learner file**, `learner.md` in the notes folder: what this user wants from challenges in this repo. It holds their goals, what they're new to, and how they like to be taught. Read it before offering topics, writing briefs, or reviewing. Whenever the user says something about how they learn (a gap, a preference, what tripped them up), add it, with the date.
 - **The block tool**, `scripts/blocks.mjs` in this skill's folder, run with Node 20 or newer. Run it with the full path to this skill's folder; it's written `blocks.mjs` below.
 
 ## The repo stays ordinary
@@ -31,7 +32,7 @@ Do the whole task to full functionality. Run every check the repo has (typecheck
 
 Done when: everything passes and you have seen the change working. Challenges are made from code that is already **green**, never from a guess.
 
-## 2. Offer topics, maybe blurs, then pause
+## 2. Offer topics, maybe setup questions, then pause
 
 Report the task's outcome briefly. Then list the **topics** the work involves, and wait for the user's choice before censoring anything.
 
@@ -53,7 +54,9 @@ With four topics or fewer, ask with a multiple-choice question tool if you have 
 
 If `config.json` doesn't exist yet, this is the user's first run: along with the topics, explain the blur levels, showing one line of this task's code at each (`low` keeps spaces, `▓` brackets and `░` punctuation; `medium` drops the punctuation; `high` keeps only spaces; `bars` hides everything), and ask which to use by default. Write their choice to `config.json` as `{ "blur": "<level>" }`; if they don't pick one, write `low`. Later runs skip this, and the user can still ask for a different blur on any challenge.
 
-Done when: the user has picked their topics (and, on a first run, a default blur). Topics the user says they already know go into `LOG.md` right away, with the outcome "already known, no challenge", so later lists mark them as practiced.
+If the learner file doesn't exist yet, ask what the user wants from challenges in this repo. The default is **taking part**: writing pieces of the code to keep a real understanding of it. Some users also have **learning goals**: a language, framework, or skill they're building, or a background that leaves gaps (years of untyped code before a typed language, say). Ask what they're new to and what they want explained more than usual. Write the answers to the learner file. If they only want to take part, write that as the goal.
+
+Done when: the user has picked their topics (and, on a first run, a default blur and their goals). Topics the user says they already know go into `LOG.md` right away, with the outcome "already known, no challenge", so later lists mark them as practiced.
 
 ## 3. Choose the pieces
 
@@ -78,7 +81,7 @@ Censor each piece with the block tool. It saves the piece as the reference solut
 
 ```sh
 node blocks.mjs censor <file> --lines 38-73 --id C --title "Installing during render" \
-  --tests 'npx vitest run -t "GDevice"' \
+  --tests 'npx vitest run -t "Device"' \
   --save ~/.didactic/challenges/<repo>/<YYYY-MM-DD>-<slug>/solution.<ext> \
   [--blur low|medium|high|bars] [--placeholder '<code>']
 ```
@@ -103,7 +106,7 @@ Leave the challenge files uncommitted. Commit the rest of the task's work as you
 ## 6. Brief the user
 
 Write one file, `challenge-<slug>.md` in the notes folder, with a heading for **every** topic from step 2, chosen or not:
-- It opens with a short status (what was built, what's committed, what's red), a note on reading a block (the shading at each blur in use, and that formatting waits until a block is done), and a table of the challenges in order, with links, checks, and blur.
+- It opens with a short status (what was built, what's committed, what's red), a note on reading a block (the shading at each blur in use, and that the file isn't formatted until its blocks are cleaned, because a formatter moves leftover shading onto code lines), and a table of the challenges in order, with links, checks, and blur.
 - Chosen topics get a full brief, in the planned order.
 - Each topic the user didn't choose gets its own heading too, placed where it helps (a topic a later challenge builds on goes just before that challenge). It explains the concepts and summarizes what was built to handle that concern, with links to the code and official docs. When the user asked a question about a topic, the section answers it.
 
@@ -116,7 +119,7 @@ Each brief has these parts:
    - a worked trace through this repo's real functions, using concrete values (a table works well)
    - the edge cases and failure modes the tests check, each named by its test
    - prior art in well-known libraries, where it exists
-3. **Concepts**: each language feature or API the user needs, explained in plain terms, with how it applies here. Link the official documentation for each (MDN, react.dev, the library's own docs, the TypeScript handbook).
+3. **Concepts**: each language feature or API the user needs, explained in plain terms, with how it applies here. Link the official documentation for each.
 4. **What best practice looks like here**: the qualities the solution should have (for example, "derives the value instead of storing it", "cleans up its subscription"), never the code.
 5. **Hints**, numbered from gentle to strong, under a line telling the user to read them only if stuck. The block already shows the code's shape, so hints are about what the lines say: which value, which call, which argument. The strongest hint still stops short of the answer.
 6. **How to check**: the command that turns green, and what to look at in the running app.
@@ -137,4 +140,4 @@ When the user says they're done or asks for a check, run the checks and compare 
 - **Green**: say so, then review it like a senior colleague. Note what's idiomatic, and explain any difference from the reference and why one might be preferred. Different but equally good is a pass; say that too.
 - **Still red**: show which check fails and what it means, and offer the next hint. If the user is stuck on the concept itself, expand that topic's **How it works** section in both copies of the brief rather than only answering in chat. A lower blur (`restyle --blur`) is a stronger hint the user can ask for. Reveal the reference only when they ask.
 
-For each finished challenge, append a line to `LOG.md` (`date · repo · concept · outcome`), so future challenges build on what the user has practiced. Once every challenge in a file is green, run `blocks.mjs clean <file>`, which removes the markers, any leftover censored lines, and the placeholder. Then pare the step comments down to the ones that explain something non-obvious, run the formatter, and commit if the task called for commits.
+For each finished challenge, append a line to `LOG.md` (`date · repo · concept · outcome`), so future challenges build on what the user has practiced. Once every challenge in a file is green, run `blocks.mjs clean <file>`, which removes the markers, any leftover censored lines, and the placeholder. `clean` finds a censored line only when it's on a line of its own. If the file was formatted first, a formatter may have moved leftover shading to the end of a code line (`cond ? //▒▒▒`), so search the file for the shading characters and remove what's left. Then pare the step comments down to the ones that explain something non-obvious, run the formatter, and commit if the task called for commits.

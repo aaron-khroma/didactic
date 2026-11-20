@@ -81,6 +81,8 @@ Your practice archive lives in `~/.didactic/` (or the folder named by `DIDACTIC_
 - **`blur`**: the default difficulty. Ask the agent for a different blur on any challenge, or to lower one as a hint.
 - **`tabWidth`**: how wide a tab looks in your editor, so shading lines up with the code it hides. `"auto"` reads `.editorconfig` and VS Code's settings.
 
+On the first run in a repo, the agent also asks what you want from challenges there. By default you just take part in writing the code, but you can name specific goals: a language you're new to, or what you want explained more than usual. Your answers go in `learner.md` in the repo's notes folder, which stays out of git, and the agent adds to it as you give feedback.
+
 ## The block tool
 
 `skills/challenge/scripts/blocks.mjs` does the censoring. It has no dependencies.
